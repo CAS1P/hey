@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hello Kennet</title>
+  <meta name="description" content="Hello Kennet" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="192.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="js.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Hello Kennet!</h1>
+
+    <!-- Window 1: shares the screen and remote-controls window 2 -->
+    <section id="controller">
+      <h2>Capture Handle and Captured Surface Control</h2>
+
+      <p id="no-support-screencapture" hidden>Screen capturing is not supported on this device or browser.</p>
+      <p id="no-support-capture-handle" hidden>Capture Handle is not supported on this device or browser.</p>
+      <p id="no-support-surface-control" hidden>Captured Surface Control is not supported on this device or browser.</p>
+
+      <ol>
+        <li>Click <b>Open page</b> to open the gallery (this same site) in a new window.</li>
+        <li>Click <b>Share screen</b> and pick the gallery's window or tab.</li>
+        <li>Use Previous / Next, scrolling and zoom from here.</li>
+      </ol>
+
+      <div id="buttons">
+        <button id="open-page-button" type="button">Open page</button>
+        <button id="share-screen-button" type="button" disabled>Share screen</button>
+        <button id="stop-share-screen-button" type="button" hidden>Stop share</button>
+        <button id="previous-button" type="button" disabled>Previous</button>
+        <button id="next-button" type="button" disabled>Next</button>
+        <button id="enable-scrolling-button" type="button" disabled>Enable scrolling</button>
+        <button id="zoom-out-button" type="button" disabled>Zoom out</button>
+        <button id="zoom-in-button" type="button" disabled>Zoom in</button>
+      </div>
+
+      <video id="preview" autoplay playsinline muted></video>
+    </section>
+
+    <!-- Window 2: the same page opened with ?gallery -->
+    <section id="gallery" hidden>
+      <h2>Gallery</h2>
+      <div id="slides">
+        <div class="slide active" style="background:#444">1</div>
+        <div class="slide" style="background:#0a7d6e">2</div>
+        <div class="slide" style="background:#7d3a0a">3</div>
+      </div>
+      <p id="status">Waiting for commands.</p>
+      <div class="filler">Scroll me remotely.</div>
+    </section>
+  </main>
+</body>
+</html>
