@@ -1,36 +1,82 @@
-const CACHE_NAME = 'hello-kennet-v3';
-const ASSETS = ['./', './index.html', './js.js', './style.css', './manifest.json', './192.png', './512.png', './favicon.ico'];
+const addResourcesToCache = async (resources) => {
+  const cache = await caches.open("v1");
+  await cache.addAll(resources);
+};
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
-});
+const putInCache = async (request, response) => {
+  const cache = await caches.open("v1");
+  await cache.put(request, response);
+};
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
+const cacheFirst = async ({
+  request,
+  preloadResponsePromise,
+  fallbackUrl,
+  event,
+}) => {
+  // First try to get the resource from the cache
+  const responseFromCache = await caches.match(request);
+  if (responseFromCache) {
+    // Keep the navigation preload request alive even if we do not use its response.
+    event.waitUntil(preloadResponsePromise.catch(() => undefined));
+    return responseFromCache;
+  }
 
-// Network first, cache as offline fallback.
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-  event.respondWith((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    try {
-      const response = await fetch(event.request);
-      if (response.ok && new URL(event.request.url).origin === location.origin) {
-        cache.put(event.request, response.clone());
-      }
-      return response;
-    } catch {
-      const cached = await cache.match(event.request);
-      if (cached) return cached;
-      if (event.request.mode === 'navigate') return cache.match('./index.html');
-      return Response.error();
+  // Next try to use (and cache) the preloaded response, if it's there
+  const preloadResponse = await preloadResponsePromise;
+  if (preloadResponse) {
+    console.info("using preload response", preloadResponse);
+    event.waitUntil(putInCache(request, preloadResponse.clone()));
+    return preloadResponse;
+  }
+
+  // Next try to get the resource from the network
+  try {
+    const responseFromNetwork = await fetch(request);
+    // response may be used only once
+    // we need to save clone to put one copy in cache
+    // and serve second one
+    event.waitUntil(putInCache(request, responseFromNetwork.clone()));
+    return responseFromNetwork;
+  } catch (error) {
+    const fallbackResponse = await caches.match(fallbackUrl);
+    if (fallbackResponse) {
+      return fallbackResponse;
     }
-  })());
+    // when even the fallback response is not available,
+    // there is nothing we can do, but we must always
+    // return a Response object
+    return new Response("Network error happened", {
+      status: 408,
+      headers: { "Content-Type": "text/plain" },
+    });
+  }
+};
+
+// Enable navigation preload
+const enableNavigationPreload = async () => {
+  if (self.registration.navigationPreload) {
+    await self.registration.navigationPreload.enable();
+  }
+};
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(enableNavigationPreload());
+});
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    addResourcesToCache(['./', './index.html', './js.js', './style.css', './manifest.json', './192.png', './512.png', './favicon.ico']),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    cacheFirst({
+      request: event.request,
+      preloadResponsePromise: event.preloadResponse,
+      fallbackUrl: "https://cas1p.github.io/hey/512.png",
+      event,
+    }),
+  );
 });
